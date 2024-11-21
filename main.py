@@ -48,9 +48,11 @@ def process_mp3(mp3_file: Path, aiff_file: Path, tags: dict) -> None:
     convert_to_aiff(str(mp3_file.absolute()), str(aiff_file.absolute()))
     add_tags(aiff_file, tags)
 
+
 def process_flac(flac_file: Path, aiff_file: Path, tags: dict) -> None:
     convert_to_aiff(str(flac_file.absolute()), str(aiff_file.absolute()))
     add_tags(aiff_file, tags)
+
 
 def add_tags(aiff_file, tags):
     audio = AIFF(aiff_file)
@@ -170,36 +172,6 @@ def convert_and_add_tags(path: Path, token: str) -> None:
         }
 
         file_processing_mapper[file.suffix](file, aiff_file, tags)
-
-
-def get_artwork_href(url):
-    try:
-        headers = {
-            "Authorization": "Bearer loSs24uZru8XMUFz3IYZR8C0GyfnEH",
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/58.0.3029.110 Safari/537.3'
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        artwork_tag = soup.find('a', class_='artwork')
-
-        if artwork_tag:
-            with open(Path("image_urls"), "a") as file_output:
-                file_output.write(artwork_tag.get('href'))
-        print(url)
-    except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-
-
-def grab_artwork():
-    beatport_url = "https://www.beatport.com"
-
-    with open(Path("track-urls")) as track_urls:
-        for track_id in track_urls:
-            track_url = f"{beatport_url}/{track_id}"
-            get_artwork_href(track_url)
 
 
 if __name__ == '__main__':
