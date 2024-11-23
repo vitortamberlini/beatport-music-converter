@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from argparse import ArgumentParser
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 
@@ -25,11 +26,8 @@ from mutagen.id3 import (
 )
 
 SUPPORTED_TYPES = (".wav", ".aiff", ".mp3", ".flac")
+CREATION_DATE = datetime.now().strftime("%Y-%m-%d")
 logger = logging.getLogger()
-
-
-def convert_wav_to_mp3(wav_file, mp3_file):
-    subprocess.call([str(Path("ffmpeg/bin/ffmpeg.exe").absolute()), '-i', wav_file, mp3_file])
 
 
 def convert_to_aiff(old_file_path: str, aiff_file_path: str) -> None:
@@ -52,6 +50,10 @@ def process_mp3(mp3_file: Path, aiff_file: Path, tags: dict) -> None:
 def process_flac(flac_file: Path, aiff_file: Path, tags: dict) -> None:
     convert_to_aiff(str(flac_file.absolute()), str(aiff_file.absolute()))
     add_tags(aiff_file, tags)
+
+
+def process_aiff(flac_file: Path, aiff_file: Path, tags: dict) -> None:
+    flac_file.rename(aiff_file)
 
 
 def add_tags(aiff_file, tags):
@@ -121,15 +123,14 @@ def escape_invalid_characters(filename: str) -> str:
     return ''.join([character for character in filename if character not in "\"|%:/,.\\[]<>*?"])
 
 
-def rename_aiff(file: Path, aiff_file: Path, tags: dict) -> None:
-    file.rename(aiff_file)
-
-
 class NotFoundError(Exception):
     pass
 
 
 def convert_and_add_tags(path: Path, token: str) -> None:
+    output_folder = path / CREATION_DATE
+    output_folder.mkdir(exist_ok=True)
+
     for file in Path('.').iterdir():
         if not file.is_file():
             logger.warning(f"Skipping {file} - Is not a file")
@@ -158,7 +159,7 @@ def convert_and_add_tags(path: Path, token: str) -> None:
             continue
 
         escaped_filename = escape_invalid_characters(tags['File'])
-        aiff_file = path / f"{escaped_filename} - {track_id}.aiff"
+        aiff_file = path / CREATION_DATE / f"{escaped_filename} - {track_id}.aiff"
 
         if aiff_file.is_file():
             logger.warning(f"Skipping {file} - File already exists ({aiff_file.name})")
@@ -168,7 +169,7 @@ def convert_and_add_tags(path: Path, token: str) -> None:
             ".wav": process_wav,
             ".mp3": process_mp3,
             ".flac": process_flac,
-            ".aiff": rename_aiff,
+            ".aiff": process_aiff,
         }
 
         file_processing_mapper[file.suffix](file, aiff_file, tags)
